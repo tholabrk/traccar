@@ -38,15 +38,20 @@ public class LdapProvider {
     private String mailAttribute;
     private String searchFilter;
     private String adminFilter;
+    private Boolean secure;
     private String serviceUser;
     private String servicePassword;
 
     public LdapProvider(Config config) {
         String url = config.getString("ldap.url");
+        this.secure = config.getBoolean("ldap.secure");
+
         if (url != null) {
             this.url = url;
         } else {
-            this.url = "ldap://" + config.getString("ldap.server") + ":" + config.getInteger("ldap.port", 389);
+            this.url = secure ? "ldaps://" : "ldap://";
+            this.url = this.url + config.getString("ldap.server") + ":"
+                    + config.getInteger("ldap.port", secure ? 636 : 389);
         }
         this.searchBase = config.getString("ldap.base");
         this.idAttribute = config.getString("ldap.idAttribute", "uid");
@@ -66,6 +71,10 @@ public class LdapProvider {
         Hashtable<String, String> env = new Hashtable<>();
         env.put(Context.INITIAL_CONTEXT_FACTORY, "com.sun.jndi.ldap.LdapCtxFactory");
         env.put(Context.PROVIDER_URL, url);
+
+        if (this.secure) {
+            env.put(Context.SECURITY_PROTOCOL, "ssl");
+        }
 
         env.put(Context.SECURITY_AUTHENTICATION, "simple");
         env.put(Context.SECURITY_PRINCIPAL, accountName);
